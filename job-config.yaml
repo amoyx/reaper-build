@@ -1,0 +1,121 @@
+workspace: /opt/build/dist/dev/openapi-gateway
+clean_workspace: true
+proxy:
+  type: ""
+  address: ""
+  port: 0
+  need_password: false
+  username: ""
+  password: ""
+  enable_repo_proxy: false
+  enable_application_proxy: false
+envs:
+  - SERVICE=openapi-gateway
+  - IMAGE=ccr.ccs.tencentyun.com/amoyxliu/openapi-gateway:20210827145114-1221-dev
+  - LOG_FILE=/tmp/user_script.log
+  - ENV_NAME=dev
+  - openapi-gateway_BRANCH=dev
+  - project=openapi-gateway
+secret_envs:
+  - profile=$EnvName$
+installs:
+  - name: java
+    version: 1.8.0_151
+    scripts:
+      - curl -fsSL http://127.0.0.1/jdk-8u151-linux-x64.tar.gz -o  /tmp/jdk-8u151-linux-x64.tar.gz
+      - mkdir -p /usr/local/java
+      - 'tar -C  /usr/local/java  -xzf /tmp/jdk-8u151-linux-x64.tar.gz   '
+      - ""
+    bin_path: /usr/local/java/jdk1.8.0_151/bin
+    envs: [ ]
+    download: ""
+  - name: maven
+    version: 3.3.9
+    scripts:
+      - curl -fsSL  http://127.0.0.1/apache.maven-3.3.9.tar.gz  -o /tmp/apache.maven-3.3.9.tar.gz
+      - tar -C  /usr/local/ -xzf /tmp/apache.maven-3.3.9.tar.gz
+    bin_path: /usr/local/apache-maven-3.3.9/bin
+    envs: [ ]
+    download: ""
+repos:
+  - source: gitlab
+    address: http://your.gitlab.com
+    owner: admin
+    name: openapi-gateway
+    remote_name: origin
+    branch: dev
+    pr: 0
+    tag: ""
+    checkout_path: ""
+    submodules: false
+    oauthToken: acb7asf878ecjhei19982dsfscc80a96a20a62cfd3c86d5cefd4d
+    checkout_ref: ""
+scripts:
+  - '#<------------------------------------------------------------------------------->'
+  - '## 当前可用环境变量如下，你可在构建脚本里进行引用使用'
+  - '## WORKSPACE  工作目录'
+  - '## IMAGE      输出镜像名称'
+  - '## SERVICE    构建的服务名称'
+  - '#<------------------------------------------------------------------------------->'
+  - '#!/bin/bash'
+  - set -e
+  - ""
+  - 'echo ${WORKSPACE} ${IMAGE} ${PKG_FILE} ${SERVICE} '
+  - '#cd $(find ./ -maxdepth 1  ! -name . -type d)'
+  - cd openapi-gateway
+  - '#编译代码'
+  - 'mvn  -B -f  ./pom.xml clean package -Dmaven.test.skip=true '
+  - ""
+  - '#获取jar包名称'
+  - jarfile=$(ls ./${project}/target/*.jar | awk -F '/' '{print $NF}')
+  - if [ -z ${jarfile} ]
+  - then
+  - "\techo \"获取代码jar包名称失败，请自行检查\""
+  - "\texit 1"
+  - fi
+  - ""
+  - docker pull ccr.ccs.tencentyun.com/amoyxliu/centos_jdk1.8.151:skywalking_test
+  - cat > ${project}/Dockerfile <<EOF
+  - FROM ccr.ccs.tencentyun.com/amoyxliu/centos_jdk1.8.151:skywalking_test
+  - ""
+  - ADD target/${jarfile} /opt/app/app.jar
+  - RUN mkdir -p /data/openapi-gateway/cer/yhdw
+  - EOF
+  - ""
+  - docker build -t ${IMAGE}   ./${project}
+  - if [ $? -ne 0 ]
+  - then
+  - "\techo \"构建镜像失败。。。。。。\""
+  - "\texit 1"
+  - fi
+  - docker push ${IMAGE}
+  - ""
+post_scripts: [ ]
+pm_deploy_scripts: [ ]
+sshs: [ ]
+ginkgo_test: null
+archive:
+  dir: /opt/build/dist/openapi-gateway-dev/dist/1221
+  file: openapi-gateway-20210617145114-1221-dev.tar.gz
+docker_registry:
+  host: https://ccr.ccs.tencentyun.com
+  namespace: ""
+  username: "your account"
+  password: password
+docker_build_ctx: null
+file_archive_ctx: null
+git:
+  username: ""
+  email: ""
+  github_host: ""
+  github_ssh_key: ""
+  gitlab_host: ""
+  gitlab_ssh_key: ""
+  git_known_host: ""
+caches: [ ]
+classic_build: false
+pipeline_name: openapi-gateway-dev
+task_id: 1221
+service_name: openapi-gateway
+reset_cache: false
+ignore_cache: false
